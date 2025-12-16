@@ -1,20 +1,3 @@
-# streamlit_full_survey.py
-"""
-Full-featured, single-file Streamlit app for survey data analysis.
-Features:
-- Upload CSV/XLS/XLSX
-- Preview (max 1000 rows)
-- Summary (rows, cols, numeric/non-numeric/text)
-- Tabs: Descriptive Stats, Visualizations, Correlations & Tests, Text Processing
-- Safe Pearson/Spearman/Chi-square, Normality (scipy.stats.normaltest)
-- Histograms, Boxplots, Scatter, Bar charts (matplotlib & seaborn)
-- Text preprocessing (lowercase, remove punctuation, tokenize, remove NLTK English stopwords)
-- PDF export (reportlab) with dataset metadata, numeric stats, normality, plots, correlation matrix, top categorical frequencies, top words per text column
-- UI: Orange background, Dark Mode toggle, Language selector (EN, ID, JP, KR, CN)
-- All UI text via TEXTS dictionary and get_text(key) fallback to English
-- Robust error handling and synchronized dropna for pairwise tests/plots
-"""
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -74,6 +57,7 @@ TEXTS = {
         "observed": "Observed",
         "expected": "Expected",
         "corr_matrix": "Pearson correlation matrix",
+        "spearman_matrix": "Spearman correlation matrix",
         "detect_text": "Detected text columns",
         "preprocess": "Preprocess text (lowercase, remove punctuation, tokenize, remove stopwords)",
         "sample_tokens": "Sample tokens",
@@ -86,7 +70,39 @@ TEXTS = {
         "insufficient": "Insufficient data for this operation",
         "pdf_generating": "Building PDF — this may take a moment...",
         "pdf_done": "PDF generated",
-        "pdf_name": "survey_report"
+        "pdf_name": "survey_report",
+        "select_two_numeric": "Select two numeric columns",
+        "select_two_categorical": "Select two categorical columns",
+        "select_text_column": "Select text column",
+        "normal": "Normal",
+        "not_normal": "Not normal",
+        "categorical_frequency": "Categorical frequency (top 10)",
+        "error_processing_text": "Error processing text",
+        "need_two_numeric_scatter": "Need at least two numeric columns for scatter",
+        "no_categorical_bar": "No categorical columns for bar chart",
+        "need_two_numeric_corr": "Need at least two numeric columns for correlations",
+        "need_two_categorical_chi": "Need at least two categorical columns for chi-square",
+        "no_text_columns": "No text columns found",
+        "processing_text": "Text Processing",
+        "select_second_numeric": "Select second numeric",
+        "select_second_categorical": "Select second categorical",
+        "remove_stopwords": "Remove English stopwords (NLTK)",
+        "interpretation_pearson": "Interpretation (Pearson):",
+        "interpretation_spearman": "Interpretation (Spearman):",
+        "positive": "Positive",
+        "negative": "Negative",
+        "no_relation": "No relation",
+        "pearson_error": "Pearson: error computing",
+        "spearman_error": "Spearman: error computing",
+        "chi_square_error": "Chi-square error",
+        "normality_error": "Normality test: error",
+        "export_report": "Export / Report",
+        "pdf_description": "Generate a PDF report that includes dataset metadata, numeric statistics, normality results, plots (histogram & boxplot), correlation matrix, top categorical frequencies, and top words for text columns. Limited number of items included to keep PDF manageable.",
+        "interpretation_chi": "Interpretation (Chi-square):",
+        "significant": "Significant association",
+        "not_significant": "No significant association",
+        "x_total": "X Total",
+        "y_total": "Y Total"
     },
     "ID": {
         "title": "Aplikasi Analisis Data Survei",
@@ -123,6 +139,7 @@ TEXTS = {
         "observed": "Observed",
         "expected": "Expected",
         "corr_matrix": "Matriks korelasi Pearson",
+        "spearman_matrix": "Matriks korelasi Spearman",
         "detect_text": "Kolom teks terdeteksi",
         "preprocess": "Preproses teks (lowercase, hapus tanda baca, token, hapus stopwords)",
         "sample_tokens": "Contoh token",
@@ -135,7 +152,56 @@ TEXTS = {
         "insufficient": "Data tidak cukup untuk operasi ini",
         "pdf_generating": "Membangun PDF — mohon tunggu...",
         "pdf_done": "PDF berhasil dibuat",
-        "pdf_name": "laporan_survey"
+        "pdf_name": "laporan_survey",
+        "no_categorical_bar": "Tidak ada kolom kategorikal untuk diagram batang",
+        "need_two_numeric_corr": "Perlu setidaknya dua kolom numerik untuk korelasi",
+        "need_two_categorical_chi": "Perlu setidaknya dua kolom kategorikal untuk uji chi-square",
+        "no_text_columns": "Tidak ada kolom teks ditemukan",
+        "remove_stopwords": "Hapus stopwords bahasa Inggris (NLTK)",
+        "interpretation_pearson": "Interpretasi (Pearson):",
+        "interpretation_spearman": "Interpretasi (Spearman):",
+        "positive": "Positif",
+        "negative": "Negatif",
+        "no_relation": "Tidak ada hubungan",
+        "pearson_error": "Pearson: kesalahan menghitung",
+        "spearman_error": "Spearman: kesalahan menghitung",
+        "chi_square_error": "Kesalahan chi-square",
+        "normality_error": "Uji normalitas: kesalahan",
+        "export_report": "Ekspor / Laporan",
+        "pdf_description": "Buat laporan PDF yang mencakup metadata dataset, statistik numerik, hasil normalitas, plot (histogram & boxplot), matriks korelasi, frekuensi kategorikal teratas, dan kata teratas untuk kolom teks. Jumlah item terbatas untuk menjaga PDF tetap mudah dikelola.",
+        "categorical_frequency": "Frekuensi kategorikal (top 10)",
+        "error_processing_text": "Kesalahan memproses teks",
+        "need_two_numeric_scatter": "Perlu setidaknya dua kolom numerik untuk scatter",
+        "no_categorical_bar": "Tidak ada kolom kategorikal untuk diagram batang",
+        "need_two_numeric_corr": "Perlu setidaknya dua kolom numerik untuk korelasi",
+        "need_two_categorical_chi": "Perlu setidaknya dua kolom kategorikal untuk uji chi-square",
+        "no_text_columns": "Tidak ada kolom teks ditemukan",
+        "processing_text": "Pemrosesan Teks",
+        "select_second_numeric": "Pilih numerik kedua",
+        "select_second_categorical": "Pilih kategorikal kedua",
+        "remove_stopwords": "Hapus stopwords bahasa Inggris (NLTK)",
+        "interpretation_pearson": "Interpretasi (Pearson):",
+        "interpretation_spearman": "Interpretasi (Spearman):",
+        "positive": "Positif",
+        "negative": "Negatif",
+        "no_relation": "Tidak ada hubungan",
+        "pearson_error": "Pearson: kesalahan menghitung",
+        "spearman_error": "Spearman: kesalahan menghitung",
+        "chi_square_error": "Kesalahan chi-square",
+        "normality_error": "Uji normalitas: kesalahan",
+        "export_report": "Ekspor / Laporan",
+        "pdf_description": "Buat laporan PDF yang mencakup metadata dataset, statistik numerik, hasil normalitas, plot (histogram & boxplot), matriks korelasi, frekuensi kategorikal teratas, dan kata teratas untuk kolom teks. Jumlah item terbatas untuk menjaga PDF tetap mudah dikelola.",
+        "interpretation_chi": "Interpretasi (Chi-square):",
+        "significant": "Asosiasi signifikan",
+        "not_significant": "Tidak ada asosiasi signifikan",
+        "x_total": "Total X",
+        "y_total": "Total Y",
+        "select_two_numeric": "Pilih dua kolom numerik",
+        "select_two_categorical": "Pilih dua kolom kategorikal",
+        "select_text_column": "Pilih kolom teks",
+        "normal": "Normal",
+        "not_normal": "Tidak normal",
+        "categorical_frequency": "Frekuensi kategorikal (top 10)"
     },
     "CN": {
         "title": "调查数据分析器",
@@ -172,6 +238,7 @@ TEXTS = {
         "observed": "观察值",
         "expected": "期望值",
         "corr_matrix": "皮尔逊相关矩阵",
+        "spearman_matrix": "斯皮尔曼相关矩阵",
         "detect_text": "检测到的文本列",
         "preprocess": "文本预处理（小写、去标点、分词、去停用词）",
         "sample_tokens": "示例词",
@@ -221,6 +288,7 @@ TEXTS = {
         "observed": "観測値",
         "expected": "期待値",
         "corr_matrix": "ピアソン相関行列",
+        "spearman_matrix": "スピアマン相関行列",
         "detect_text": "検出されたテキスト列",
         "preprocess": "テキスト前処理（小文字化・句読点削除・分割・ストップワード除去）",
         "sample_tokens": "トークン例",
@@ -270,6 +338,7 @@ TEXTS = {
         "observed": "관측값",
         "expected": "기대값",
         "corr_matrix": "피어슨 상관 행렬",
+        "spearman_matrix": "스피어만 상관 행렬",
         "detect_text": "감지된 텍스트 열",
         "preprocess": "텍스트 전처리(소문자, 구두점 제거, 토큰화, 불용어 제거)",
         "sample_tokens": "토큰 샘플",
@@ -436,6 +505,17 @@ def build_survey_report_pdf(df: pd.DataFrame, lang: str = "EN") -> bytes:
         flow.append(Table(table_data))
         flow.append(Spacer(1, 12))
 
+        # Spearman correlation matrix
+        flow.append(Paragraph(get_text("spearman_matrix"), styles["Heading2"]))
+        spearman_corr = num_df.corr(method='spearman').round(3)
+        headers_spearman = [""] + list(spearman_corr.columns)
+        table_data_spearman = [headers_spearman]
+        for idx in spearman_corr.index:
+            row = [idx] + [str(spearman_corr.loc[idx, c]) for c in spearman_corr.columns]
+            table_data_spearman.append(row)
+        flow.append(Table(table_data_spearman))
+        flow.append(Spacer(1, 12))
+
     # Categorical top 10
     if not cat_df.empty:
         flow.append(Paragraph("Categorical frequency (top 10)", styles["Heading2"]))
@@ -528,11 +608,14 @@ num_df = df.select_dtypes(include=np.number)
 cat_df = df.select_dtypes(exclude=np.number)
 text_cols = [c for c in df.columns if df[c].dtype == object]
 
-c1, c2, c3, c4 = st.columns(4)
+c1, c2, c3, c4, c5, c6 = st.columns(6)
 c1.metric(get_text("rows"), df.shape[0])
 c2.metric(get_text("cols"), df.shape[1])
 c3.metric(get_text("num_cols"), num_df.shape[1])
 c4.metric(get_text("cat_cols"), cat_df.shape[1])
+c5.metric(get_text("x_total"), df.shape[0] * df.shape[1])
+c6.metric(get_text("y_total"), df.isnull().sum().sum())
+st.write(f"Interpretation: The dataset summary indicates {df.shape[0]} rows, {df.shape[1]} columns, {num_df.shape[1]} numeric columns, {cat_df.shape[1]} categorical columns, {get_text('x_total')} {df.shape[0] * df.shape[1]}, and {get_text('y_total')} {df.isnull().sum().sum()}. 📊")
 
 # tabs
 tabs = st.tabs([get_text("descriptive_tab"), get_text("visual_tab"), get_text("corr_tab"), get_text("text_tab")])
@@ -551,13 +634,14 @@ with tabs[0]:
             else:
                 stats = descriptive_stats(s)
                 st.write(pd.DataFrame(stats, index=[sel_num]).T)
+                st.write(f"Interpretation: Descriptive statistics for '{sel_num}' show the central tendency, spread, and distribution of the data. 📈")
                 # normality
                 if len(s) >= 8:
                     try:
                         stat, p = normaltest(s)
                         st.write(get_text("normality_title"))
                         st.write({get_text("statistic"): float(stat), get_text("p_value"): float(p)})
-                        st.write(get_text("interpretation") + ": " + (get_text("interpretation") if p > 0.05 else get_text("insufficient")))
+                        st.write(get_text("interpretation") + ": " + (get_text("normal") if p > 0.05 else get_text("not_normal")) + " 🔍")
                     except Exception:
                         st.write("Normality test: error")
                 else:
@@ -586,7 +670,14 @@ with tabs[0]:
             vc = df[sel_cat].fillna("(Missing)").astype(str).value_counts()
             pct = (vc / vc.sum()) * 100
             out = pd.DataFrame({"count": vc, "percent": pct})
-            st.dataframe(out.head(100))
+            # Add total row
+            total_row = pd.Series({"count": vc.sum(), "percent": 100.0}, name="Total")
+            out = pd.concat([out, pd.DataFrame([total_row])])
+            st.dataframe(out.head(101))  # head(101) to include total
+            # Interpretation
+            most_freq = vc.idxmax()
+            pct_most = pct.loc[most_freq]
+            st.write(f"Interpretation: The most frequent category is '{most_freq}' with {pct_most:.1f}%. 🏆")
 
 # Visualizations tab
 with tabs[1]:
@@ -603,12 +694,14 @@ with tabs[1]:
             ax.set_title(f"{sel_hist} - {get_text('histogram')}")
             st.pyplot(fig)
             plt.close(fig)
+            st.write(f"Interpretation: The histogram displays the frequency distribution of '{sel_hist}', showing how values are spread across the range. 📊")
 
             fig2, ax2 = plt.subplots()
             sns.boxplot(x=s, ax=ax2)
             ax2.set_title(f"{sel_hist} - {get_text('boxplot')}")
             st.pyplot(fig2)
             plt.close(fig2)
+            st.write(f"Interpretation: The boxplot shows the quartiles, median, and potential outliers for '{sel_hist}'. 📦")
     else:
         st.info(get_text("insufficient"))
 
@@ -628,8 +721,9 @@ with tabs[1]:
                 ax.set_title(f"{xcol} vs {ycol}")
                 st.pyplot(fig)
                 plt.close(fig)
+                st.write(f"Interpretation: The scatter plot shows the relationship between '{xcol}' and '{ycol}', indicating direction and strength of association. 📈")
     else:
-        st.info("Need at least two numeric columns for scatter")
+        st.info(get_text("need_two_numeric_scatter"))
 
     # Bar chart for categorical
     st.subheader(get_text("bar_chart"))
@@ -641,6 +735,7 @@ with tabs[1]:
         ax.set_xlabel("Count"); ax.set_ylabel(sel_cat_bar)
         st.pyplot(fig)
         plt.close(fig)
+        st.write(f"Interpretation: The bar chart displays the top 20 categories for '{sel_cat_bar}', showing their frequencies. 📊")
     else:
         st.info("No categorical columns for bar chart")
 
@@ -651,7 +746,7 @@ with tabs[2]:
     st.subheader(f"{get_text('pearson')} & {get_text('spearman')}")
     if num_df.shape[1] >= 2:
         a = st.selectbox(get_text("select_two_numeric"), options=list(num_df.columns), key="corr_a")
-        b = st.selectbox("Select second numeric", options=list(num_df.columns), index=1 if len(num_df.columns) > 1 else 0, key="corr_b")
+        b = st.selectbox(get_text("select_second_numeric"), options=list(num_df.columns), index=1 if len(num_df.columns) > 1 else 0, key="corr_b")
         if a and b:
             clean = df[[a, b]].dropna()
             if clean.shape[0] < 2:
@@ -660,15 +755,15 @@ with tabs[2]:
                 try:
                     r, p = pearsonr(clean[a], clean[b])
                     st.write(f"{get_text('pearson')}: r = {r:.4f}, p = {p:.6f}")
-                    st.write("Interpretation (Pearson):", ("Positive" if r > 0 else "Negative" if r < 0 else "No relation"), f" (|r|={abs(r):.3f})")
+                    st.write(get_text("interpretation_pearson") + ":", get_text("positive") if r > 0 else get_text("negative") if r < 0 else get_text("no_relation"), f" (|r|={abs(r):.3f}) 📈")
                 except Exception:
-                    st.write("Pearson: error computing")
+                    st.write(get_text("pearson_error"))
                 try:
                     rho, p2 = spearmanr(clean[a], clean[b])
                     st.write(f"{get_text('spearman')}: rho = {rho:.4f}, p = {p2:.6f}")
-                    st.write("Interpretation (Spearman):", ("Positive" if rho > 0 else "Negative" if rho < 0 else "No relation"), f" (|rho|={abs(rho):.3f})")
+                    st.write(get_text("interpretation_spearman") + ":", get_text("positive") if rho > 0 else get_text("negative") if rho < 0 else get_text("no_relation"), f" (|rho|={abs(rho):.3f}) 📈")
                 except Exception:
-                    st.write("Spearman: error computing")
+                    st.write(get_text("spearman_error"))
     else:
         st.info("Need at least two numeric columns for correlations")
 
@@ -676,7 +771,7 @@ with tabs[2]:
     st.subheader(get_text("chi_square"))
     if cat_df.shape[1] >= 2:
         ca = st.selectbox(get_text("select_two_categorical") + " 1", options=list(cat_df.columns), key="chi_a")
-        cb = st.selectbox(get_text("select_two_categorical") + " 2", options=list(cat_df.columns), index=1 if len(cat_df.columns) > 1 else 0, key="chi_b")
+        cb = st.selectbox(get_text("select_second_categorical"), options=list(cat_df.columns), index=1 if len(cat_df.columns) > 1 else 0, key="chi_b")
         if ca and cb:
             ct = pd.crosstab(df[ca].fillna("(Missing)").astype(str), df[cb].fillna("(Missing)").astype(str))
             if ct.size == 0 or ct.values.sum() == 0 or ct.shape[0] < 2 or ct.shape[1] < 2:
@@ -689,6 +784,7 @@ with tabs[2]:
                     st.dataframe(ct)
                     st.write(get_text("expected"))
                     st.dataframe(pd.DataFrame(expected, index=ct.index, columns=ct.columns))
+                    st.write(get_text("interpretation_chi") + ": " + (get_text("significant") if pval < 0.05 else get_text("not_significant")) + " 🔗")
                 except Exception as e:
                     st.write(f"Chi-square error: {e}")
     else:
@@ -698,6 +794,15 @@ with tabs[2]:
     st.subheader(get_text("corr_matrix"))
     if num_df.shape[1] > 1:
         st.dataframe(num_df.corr().round(4))
+        st.write("Interpretation: The Pearson correlation matrix shows pairwise linear correlations between numeric variables. 📊")
+    else:
+        st.info(get_text("insufficient"))
+
+    # Spearman correlation matrix
+    st.subheader(get_text("spearman_matrix"))
+    if num_df.shape[1] > 1:
+        st.dataframe(num_df.corr(method='spearman').round(4))
+        st.write("Interpretation: The Spearman correlation matrix shows pairwise monotonic correlations between numeric variables. 📊")
     else:
         st.info(get_text("insufficient"))
 
@@ -707,7 +812,7 @@ with tabs[3]:
     if not text_cols:
         st.info("No text columns found")
     else:
-        sel_text = st.selectbox("Select text column", options=text_cols, key="text_select")
+        sel_text = st.selectbox(get_text("select_text_column"), options=text_cols, key="text_select")
         remove_sw = st.checkbox("Remove English stopwords (NLTK)", value=True)
         tokens, counter = preprocess_text_series(df[sel_text], remove_stopwords=remove_sw)
         st.subheader(get_text("sample_tokens"))
@@ -717,6 +822,10 @@ with tabs[3]:
             st.write(list(tokens)[:5])
         st.subheader(get_text("top_words"))
         st.table(pd.DataFrame(counter.most_common(10), columns=["word", "count"]))
+        # Interpretation
+        if counter:
+            most_common_word, most_common_count = counter.most_common(1)[0]
+            st.write(f"Interpretation: The most frequent word is '{most_common_word}' with {most_common_count} occurrences. 📝")
 
 # Export / PDF (main page, tidy)
 st.markdown("---")
