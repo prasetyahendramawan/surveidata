@@ -561,12 +561,25 @@ def build_survey_report_pdf(df: pd.DataFrame, lang: str = "EN") -> bytes:
 # Streamlit UI
 # --------------------------
 st.set_page_config(page_title="Survey Data Analyzer", layout="wide")
-# orange background
+# background video and orange fallback
 st.markdown("""
     <style>
     .stApp { background-color: #FFA64D !important; }
     .block-container { padding: 1rem 2rem; }
+    .video-background {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        object-fit: cover;
+    }
     </style>
+    <video class="video-background" autoplay muted loop>
+        <source src="assets/background.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
     """, unsafe_allow_html=True)
 
 # init session state
